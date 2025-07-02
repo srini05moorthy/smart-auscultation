@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Smart Auscultation Web App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Tailwind for quick, clean styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- TensorFlow.js (optional – needed only after you add your lung‑sound model) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
+</head>
+<body class="bg-slate-50 flex flex-col items-center p-6 gap-4 min-h-screen">
+  <h1 class="text-3xl font-bold">Smart Auscultation (PWA)</h1>
+
+  <!-- Warning for browsers without Web‑Bluetooth support -->
+  <p class="text-red-600 font-semibold">
+    ⚠️ This browser or environment does not support Bluetooth access.  
+    Please open this web app on a supported browser such as Chrome (over HTTPS) and allow Bluetooth permissions.
+  </p>
+
+  <!-- Playback + recording controls -->
+  <div class="flex gap-3 mt-6">
+    <button id="btnPlay"   class="rounded-2xl px-4 py-2 bg-green-600  text-white shadow">▶ Play</button>
+    <button id="btnStop"   class="rounded-2xl px-4 py-2 bg-red-600    text-white shadow">⏹ Stop</button>
+    <button id="btnRecord" class="rounded-2xl px-4 py-2 bg-yellow-500 text-white shadow">⏺ Record</button>
+  </div>
+
+  <!-- Audio element for playback -->
+  <audio id="audioPlayer" class="mt-4" controls></audio>
+  <p id="aiOutput" class="italic mt-1">AI Result: –</p>
+
+  <script>
+  // ========= STATE =========
+  let audioCtx, mediaStreamDest, mediaRecorder;
+
+  // ========= DOM =========
+  const btnPlay   = document.getElementById('btnPlay');
+  const btnStop   = document.getElementById('btnStop');
+  const btnRecord = document.getElementById('btnRecord');
+  const audioPlay = document.getElementById('audioPlayer');
+  const aiOutput  = document.getElementById('aiOutput');
+
+  // ========= EVENTS =========
+  btnPlay.addEventListener('click', startTone);
+  btnStop.addEventListener('click', stopAudio);
+  btnRecord.addEventListener('click', toggleRecording);
+
+  // ========= FUNCTIONS =========
+  function startTone () {
+    // Create AudioContext and destination
+    audioCtx        = new (window.AudioContext || window.webkitAudioContext)();
+    mediaStreamDest = audioCtx.createMediaStreamDestination();
+    audioPlay.srcObject = mediaStreamDest.stream;
+
+    // Simple 440 Hz tone for 2 seconds (demo placeholder)
+    const osc = audioCtx.createOscillator();
+    osc.frequency.value = 440;
+    osc.connect(mediaStreamDest);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 2);
+  }
+
+  function stopAudio () {
+    if (audioCtx) {
+      audioCtx.close();
+      audioPlay.pause();
+    }
+  }
+
+  function toggleRecording () {
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+      // Start recording
+      mediaRecorder = new MediaRecorder(mediaStreamDest.stream);
+      const chunks = [];
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        const wavBlob = new Blob(chunks, { type: 'audio/wav' });
+        audioPlay.src = URL.createObjectURL(wavBlob);
+        classifyAudio(wavBlob);
+      };
+      mediaRecorder.start();
+      btnRecord.textContent = '⏹ Stop';
+    } else if (mediaRecorder.state === 'recording') {
+      // Stop recording
+      mediaRecorder.stop();
+      btnRecord.textContent = '⏺ Record';
+    }
+  }
+
+  async function classifyAudio (blob) {
+    // Placeholder for future TensorFlow.js inference
+    aiOutput.textContent = 'AI Result: analysing…';
+    // TODO: load your model and classify the WAV blob
+    aiOutput.textContent = 'AI Result: (model not yet integrated)';
+  }
+  </script>
+</body>
+</html>
+
